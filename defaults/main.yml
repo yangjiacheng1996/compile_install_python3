@@ -1,0 +1,5 @@
+---
+# defaults file for el7_compile_install_python3
+
+python_version: "3.8.3"
+python_major_version: "3.8"

@@ -1,0 +1,94 @@
+---
+# tasks file for el_compile_install_python3_from_web
+
+  - name: download CentOS-base yum repo for 7.x
+    shell: 'cd /etc/yum.repos.d/ && wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.cloud.tencent.com/repo/centos7_base.repo'
+    become: True
+
+  - name: rewrite repo file
+    shell: "cd /etc/yum.repos.d/ && sed -i 's/$releasever/7/g' /etc/yum.repos.d/CentOS-Base.repo"
+    become: True
+
+  - name: enable repo and make cache
+    yum: enablerepo=centos7_base update_cache=yes
+    become: True
+
+  - name: yum install some packages before install python3
+    yum:
+      name:
+        - zlib-devel
+        - bzip2-devel
+        - openssl-devel
+        - ncurses-devel
+        - sqlite-devel
+        - readline-devel
+        - tk-devel
+        - libffi-devel
+        - gdbm-devel
+        - libpcap-devel
+        - xz-devel
+        - wget
+        - gcc
+        - make
+      state: present
+    become: True
+    ignore_errors: yes
+
+  - name: Create a directory /usr/local if it does not exist
+    ansible.builtin.file:
+      path: /usr/local
+      state: directory
+      mode: '0755'
+    become: True
+
+#  - name: download Python tgz from python.org
+#    shell: "cd /usr/local && wget -O /usr/local/Python-{{ python_version }}.tgz  https://www.python.org/ftp/python/{{ python_version }}/Python-{{ python_version }}.tgz"
+#    become: True
+#
+#  - name: Recursively remove old python directory
+#    ansible.builtin.file:
+#      path: /usr/local/Python-{{ python_version }}
+#      state: absent
+#    become: True
+
+  - name: Unarchive Python.tgz that needs to be downloaded from python.org, remove existed old directory
+    ansible.builtin.unarchive:
+      src: "https://www.python.org/ftp/python/{{ python_version }}/Python-{{ python_version }}.tgz"
+      dest: /usr/local/
+      remote_src: yes
+    become: True
+
+  - name: try Recursively removing old python3 directory
+    ansible.builtin.file:
+      path: /usr/local/python3
+      state: absent
+    become: True
+
+  - name: compile to python3 and  make install
+    shell: "cd /usr/local/Python-{{ python_version }};sudo ./configure prefix=/usr/local/python3;make clean && make && make install"
+    become: True
+
+#  - name: make install
+#    shell: "make clean && make && make install"
+#    become: True
+
+  - name: Create a symbolic link
+    ansible.builtin.file:
+      src: "/usr/local/python3/bin/python{{ python_major_version }}"
+      dest: "/usr/bin/python3"
+      state: link
+    become: True
+
+  - name: Create a symbolic link
+    ansible.builtin.file:
+      src: "/usr/local/python3/bin/pip3"
+      dest: "/usr/bin/pip3"
+      state: link
+    become: True
+
+  - name: show current Python version
+    shell: "/usr/bin/python3 -V"
+    register: py3V
+  - debug: msg="your server python3 version is {{ py3V.stdout }}"
+
+
